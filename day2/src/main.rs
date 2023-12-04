@@ -45,19 +45,38 @@ fn main() {
 
         let mut game_possible = true;
 
-        game.info.split("; ").for_each(|d| {
-            d.split(", ").for_each(|c| {
-                let set = ColourSet::parse(c).unwrap();
-                let max = max_cubes.get(&set.colour).unwrap();
-                if set.num > *max {
-                    game_possible = false;
-                }
+        let min: HashMap<String, u32> = game
+            .info
+            .split("; ")
+            .map(|d| {
+                let draw = d
+                    .split(", ")
+                    .map(|c| {
+                        let set = ColourSet::parse(c).unwrap();
+                        (set.colour, set.num)
+                    })
+                    .collect::<Vec<(String, u32)>>();
+                draw
             })
-        });
+            .fold(HashMap::new(), |mut acc, draws| {
+                draws.iter().for_each(|(colour, num)| {
+                    if let Some(x) = acc.get(colour) {
+                        if num > x {
+                            acc.insert((&colour).to_string(), *num);
+                        }
+                    } else {
+                        acc.insert((&colour).to_string(), *num);
+                    }
+                });
 
-        if game_possible {
-            games_possible.push(game.id);
-        }
+                acc
+            });
+
+        let green = min.get("green").unwrap();
+        let red = min.get("red").unwrap();
+        let blue = min.get("blue").unwrap();
+
+        games_possible.push(*green * *red * *blue);
     }
 
     let result: u32 = games_possible.iter().sum();
