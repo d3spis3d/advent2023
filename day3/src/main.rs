@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -59,6 +58,33 @@ fn is_part_number(
     false
 }
 
+fn is_gear(p: (u32, u32), max_lines: u32, part_numbers: &Vec<Vec<PartNumber>>) -> u32 {
+    let start_line = if p.0 > 0 { p.0 - 1 } else { p.0 };
+
+    let end_line = if p.0 == max_lines - 1 { p.0 } else { p.0 + 1 };
+
+    let mut adjacent_part_numbers: Vec<&PartNumber> = Vec::new();
+
+    for i in start_line..(end_line + 1) {
+        let pn = &(part_numbers[i as usize]);
+
+        let mut adj = pn
+            .iter()
+            .filter(|part_num| adjacent(p.1, part_num.start.1, part_num.end.1))
+            .collect::<Vec<&PartNumber>>();
+        adjacent_part_numbers.append(&mut adj);
+    }
+
+    // println!("{:?}", p);
+    // println!("{:?}", adjacent_part_numbers);
+
+    if adjacent_part_numbers.len() == 2 {
+        return adjacent_part_numbers[0].number * adjacent_part_numbers[1].number;
+    }
+
+    0
+}
+
 fn main() {
     let mut part_numbers: Vec<Vec<PartNumber>> = Vec::new();
     let mut parts: Vec<Vec<(u32, u32)>> = Vec::new();
@@ -100,7 +126,7 @@ fn main() {
 
                 buff.clear();
 
-                if c != '.' {
+                if c == '*' {
                     this_parts.push((line_num, char_num));
                 }
             }
@@ -113,18 +139,11 @@ fn main() {
         parts.push(this_parts);
     }
 
-    let result: u32 = part_numbers
+    let result: u32 = parts
         .iter()
         .map(|pn| {
             pn.iter()
-                .filter(|p| {
-                    if is_part_number(p.start.0, line_num, p.start.1, p.end.1, &parts) {
-                        true
-                    } else {
-                        false
-                    }
-                })
-                .map(|p| p.number)
+                .map(|p| is_gear(*p, line_num, &part_numbers))
                 .sum::<u32>()
         })
         .sum::<u32>();
