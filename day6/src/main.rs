@@ -10,7 +10,7 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
-fn calculate_times(time: u32, distance: u32) -> u32 {
+fn calculate_times(time: u64, distance: u64) -> u64 {
     let mut winning_times = 0;
 
     for t in 0..time + 1 {
@@ -23,7 +23,7 @@ fn calculate_times(time: u32, distance: u32) -> u32 {
 }
 
 fn main() {
-    let Ok(mut lines) = read_lines("./test.txt") else {
+    let Ok(mut lines) = read_lines("./input.txt") else {
         panic!("couldn't read input");
     };
 
@@ -33,21 +33,18 @@ fn main() {
     let t = times
         .trim_start_matches("Time:")
         .trim()
-        .split(" ")
-        .filter(|s| s.trim() != "")
-        .map(|s| s.trim().parse::<u32>().unwrap());
+        .replace(" ", "")
+        .parse::<u64>()
+        .unwrap();
 
     let d = distances
         .trim_start_matches("Distance:")
         .trim()
-        .split(" ")
-        .filter(|s| s.trim() != "")
-        .map(|s| s.trim().parse::<u32>().unwrap());
+        .replace(" ", "")
+        .parse::<u64>()
+        .unwrap();
 
-    let result = t
-        .zip(d)
-        .map(|(time, distance)| calculate_times(time, distance))
-        .fold(1, |acc, t| acc * t);
+    let result = calculate_times(t, d);
 
     println!("{}", result);
 }
