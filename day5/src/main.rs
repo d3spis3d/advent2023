@@ -1,5 +1,5 @@
+use rangemap::RangeMap;
 use regex::Regex;
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -12,8 +12,51 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
+fn create_map(
+    lines: &mut io::Lines<io::BufReader<File>>,
+    header: &str,
+) -> RangeMap<u64, (u64, u64, u64)> {
+    let mut map: RangeMap<u64, (u64, u64, u64)> = RangeMap::new();
+
+    let re = Regex::new(r"^(?<new>[0-9]+) (?<original>[0-9]+) (?<range>[0-9]+)$").unwrap();
+
+    let header_line = lines.next().unwrap().unwrap();
+    if header_line != header {
+        panic!("bad header");
+    }
+
+    loop {
+        let l = lines.next();
+        match l {
+            None => break,
+            _ => {}
+        }
+
+        let line = l.unwrap().unwrap();
+
+        if line == "" {
+            break;
+        }
+
+        let caps = re.captures(&line).unwrap();
+        let original = caps
+            .name("original")
+            .unwrap()
+            .as_str()
+            .parse::<u64>()
+            .unwrap();
+        let new = caps.name("new").unwrap().as_str().parse::<u64>().unwrap();
+        let range = caps.name("range").unwrap().as_str().parse::<u64>().unwrap();
+
+        // println!("{} {} {}", original, new, range);
+        map.insert(original..original + range, (original, new, range));
+    }
+
+    return map;
+}
+
 fn main() {
-    let Ok(mut lines) = read_lines("./test.txt") else {
+    let Ok(mut lines) = read_lines("./input.txt") else {
         panic!("couldn't read input");
     };
 
@@ -21,43 +64,58 @@ fn main() {
     let seeds = seed_line
         .trim_start_matches("seeds: ")
         .split(" ")
-        .collect::<Vec<&str>>();
+        .collect::<Vec<&str>>()
+        .chunks(2)
+        .map(|seed_range| {
+            let mut seeds = Vec::new();
+            let start = seed_range[0].parse::<u64>().unwrap();
+            let range = seed_range[1].parse::<u64>().unwrap();
 
-    let mut blank = lines.next().unwrap().unwrap(); // skip blank
+            for i in start..start + range {
+                seeds.push(i);
+            }
+
+            seeds
+        })
+        .flatten()
+        .collect::<Vec<u64>>();
+
+    let blank = lines.next().unwrap().unwrap(); // skip blank
     if blank != "" {
         println!("{}", blank);
         panic!("argggg not blank");
     }
 
-    let seed_to_soil_header = lines.next().unwrap().unwrap();
-    if seed_to_soil_header != "seed-to-soil map:" {
-        panic!("bad header");
-    }
+    let headers = vec![
+        "seed-to-soil map:",
+        "soil-to-fertilizer map:",
+        "fertilizer-to-water map:",
+        "water-to-light map:",
+        "light-to-temperature map:",
+        "temperature-to-humidity map:",
+        "humidity-to-location map:",
+    ];
 
-    let mut seed_to_soil: HashMap<u32, u32> = HashMap::new();
+    let maps = headers
+        .iter()
+        .map(|h| create_map(&mut lines, h))
+        .collect::<Vec<RangeMap<u64, (u64, u64, u64)>>>();
 
-    let re = Regex::new(r"^(?<original>[0-9]+) (?<new>[0-9]+) (?<range>[0-9]+)$").unwrap();
+    let result = seeds
+        .iter()
+        .map(|s| {
+            // let x = s.parse::<u64>().unwrap();
+            maps.iter().fold(*s, |acc, map| {
+                let new = map.get(&acc);
+                // println!("{:?} {:?}", acc, new);
+                match new {
+                    Some((original, new, _)) => new + (acc - original),
+                    None => acc,
+                }
+                // println!("from {} to {}", acc, new);
+            })
+        })
+        .min();
 
-    loop {
-        let l = lines.next().unwrap().unwrap();
-        if l == "" {
-            break;
-        }
-
-        let caps = re.captures(&l).unwrap();
-        let seed = caps
-            .name("original")
-            .unwrap()
-            .as_str()
-            .parse::<u32>()
-            .unwrap();
-        let soil = caps.name("new").unwrap().as_str().parse::<u32>().unwrap();
-        let range = caps.name("range").unwrap().as_str().parse::<u32>().unwrap();
-
-        for i in 0..range {
-            seed_to_soil.insert(seed + i, soil + i);
-        }
-    }
-
-    // make that into a function to call for each section
+    println!("result: {}", result.unwrap());
 }
