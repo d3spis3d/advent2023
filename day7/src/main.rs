@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead};
@@ -49,15 +50,65 @@ impl Card {
     }
 }
 
+// #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+// enum HandType {
+//     HighCard(Card),
+//     Pair(Card),
+//     TwoPair(Card, Card),
+//     Three(Card),
+//     FullHouse(Card, Card),
+//     Four(Card),
+//     Five(Card),
+// }
+
+// impl HandType {
+//     fn from(collection: HashMap<Card, u8>) -> Self {
+//         let mut contents = collection.into_iter().collect::<Vec<(Card, u8)>>();
+//         contents.sort_by(|a, b| b.1.cmp(&a.1));
+
+//         let (card, num) = &contents[0];
+//         match *num {
+//             5 => return HandType::Five(*card),
+//             4 => return HandType::Four(*card),
+//             3 => {
+//                 let (c2, n2) = &contents[1];
+//                 if *n2 == 2 {
+//                     return HandType::FullHouse(*card, *c2);
+//                 } else {
+//                     return HandType::Three(*card);
+//                 }
+//             }
+//             2 => {
+//                 let (c2, n2) = &contents[1];
+//                 if *n2 == 2 {
+//                     let mut pairs = Vec::from([*card, *c2]);
+//                     pairs.sort();
+//                     pairs.reverse();
+//                     return HandType::TwoPair(pairs[0], pairs[1]);
+//                 } else {
+//                     return HandType::Pair(*card);
+//                 }
+//             }
+//             1 => {
+//                 let mut cards = contents.into_iter().map(|(c, _)| c).collect::<Vec<Card>>();
+//                 cards.sort();
+//                 cards.reverse();
+//                 return HandType::HighCard(cards[0]);
+//             }
+//             _ => panic!("argggggh!"),
+//         }
+//     }
+// }
+
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 enum HandType {
-    HighCard(Card),
-    Pair(Card),
-    TwoPair(Card, Card),
-    Three(Card),
-    FullHouse(Card, Card),
-    Four(Card),
-    Five(Card),
+    HighCard,
+    Pair,
+    TwoPair,
+    Three,
+    FullHouse,
+    Four,
+    Five,
 }
 
 impl HandType {
@@ -65,41 +116,35 @@ impl HandType {
         let mut contents = collection.into_iter().collect::<Vec<(Card, u8)>>();
         contents.sort_by(|a, b| b.1.cmp(&a.1));
 
-        let (card, num) = &contents[0];
+        let (_, num) = &contents[0];
         match *num {
-            5 => return HandType::Five(*card),
-            4 => return HandType::Four(*card),
+            5 => return HandType::Five,
+            4 => return HandType::Four,
             3 => {
-                let (c2, n2) = &contents[1];
+                let (_, n2) = &contents[1];
                 if *n2 == 2 {
-                    return HandType::FullHouse(*card, *c2);
+                    return HandType::FullHouse;
                 } else {
-                    return HandType::Three(*card);
+                    return HandType::Three;
                 }
             }
             2 => {
-                let (c2, n2) = &contents[1];
+                let (_, n2) = &contents[1];
                 if *n2 == 2 {
-                    let mut pairs = Vec::from([*card, *c2]);
-                    pairs.sort();
-                    pairs.reverse();
-                    return HandType::TwoPair(pairs[0], pairs[1]);
+                    return HandType::TwoPair;
                 } else {
-                    return HandType::Pair(*card);
+                    return HandType::Pair;
                 }
             }
             1 => {
-                let mut cards = contents.into_iter().map(|(c, _)| c).collect::<Vec<Card>>();
-                cards.sort();
-                cards.reverse();
-                return HandType::HighCard(cards[0]);
+                return HandType::HighCard;
             }
             _ => panic!("argggggh!"),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, PartialOrd)]
 struct Hand {
     cards: Vec<Card>,
     hand_type: HandType,
@@ -134,14 +179,44 @@ impl Hand {
     }
 }
 
+impl Ord for Hand {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let ordering = self.hand_type.cmp(&other.hand_type);
+        match ordering {
+            Ordering::Equal => {
+                for i in 0..self.cards.len() {
+                    let o = self.cards[i].cmp(&other.cards[i]);
+                    if o != Ordering::Equal {
+                        return o;
+                    }
+                }
+                return Ordering::Equal;
+            }
+            _ => return ordering,
+        };
+    }
+}
+
 fn main() {
-    let Ok(lines) = read_lines("./test.txt") else {
+    let Ok(lines) = read_lines("./input.txt") else {
         panic!("couldn't read input");
     };
+
+    let mut hands: Vec<Hand> = Vec::new();
 
     for l in lines {
         let line = l.unwrap();
         let hand = Hand::from(line);
-        println!("{:?}", hand);
+        // println!("{:?}", hand);
+        hands.push(hand);
     }
+
+    hands.sort_by(|a, b| a.cmp(&b));
+    // println!("{:?}", hands);
+    let result = hands
+        .into_iter()
+        .enumerate()
+        .map(|(i, h)| h.wager * (i + 1) as u64)
+        .sum::<u64>();
+    println!("{}", result);
 }
