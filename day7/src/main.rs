@@ -14,6 +14,7 @@ where
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone)]
 enum Card {
+    Joker,
     Two,
     Three,
     Four,
@@ -23,7 +24,6 @@ enum Card {
     Eight,
     Nine,
     Ten,
-    Jack,
     Queen,
     King,
     Ace,
@@ -41,7 +41,7 @@ impl Card {
             '8' => Some(Card::Eight),
             '9' => Some(Card::Nine),
             'T' => Some(Card::Ten),
-            'J' => Some(Card::Jack),
+            'J' => Some(Card::Joker),
             'Q' => Some(Card::Queen),
             'K' => Some(Card::King),
             'A' => Some(Card::Ace),
@@ -112,9 +112,25 @@ enum HandType {
 }
 
 impl HandType {
-    fn from(collection: HashMap<Card, u8>) -> Self {
+    fn from(mut collection: HashMap<Card, u8>) -> Self {
+        // todo check jokers
+        let jokers = collection.remove(&Card::Joker);
+
         let mut contents = collection.into_iter().collect::<Vec<(Card, u8)>>();
         contents.sort_by(|a, b| b.1.cmp(&a.1));
+
+        if let Some(jc) = jokers {
+            if contents.len() == 0 {
+                contents.push((Card::Joker, jc));
+            } else {
+                let (highest_card, highest_count) = contents[0];
+                contents[0] = (highest_card, highest_count + jc);
+                println!(
+                    "Add {} jokers to ({:?}, {})",
+                    jc, highest_card, highest_count
+                );
+            }
+        }
 
         let (_, num) = &contents[0];
         match *num {
