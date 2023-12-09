@@ -35,7 +35,7 @@ fn main() {
             }
 
             if next.iter().all(|x| *x == 0) {
-                next.push(0);
+                next.insert(0, 0);
                 dataset.push(next);
                 break;
             } else {
@@ -45,15 +45,15 @@ fn main() {
         }
 
         for i in (0..dataset.len() - 1).rev() {
-            let l = dataset[i].last().unwrap();
-            let n = dataset[i + 1].last().unwrap();
-            let x = *l + *n;
-            dataset[i].push(x);
+            let l = dataset[i].first().unwrap();
+            let n = dataset[i + 1].first().unwrap();
+            let x = *l - *n;
+            dataset[i].insert(0, x);
         }
 
         // println!("{:?}", dataset);
         // println!("----------------");
-        predictions.push(*dataset[0].last().unwrap());
+        predictions.push(*dataset[0].first().unwrap());
     }
 
     let result = predictions.iter().sum::<i64>();
