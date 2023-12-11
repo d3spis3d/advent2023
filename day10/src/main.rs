@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -121,6 +121,9 @@ fn main() {
     let mut pos: (usize, usize, Pipe) = (s_i, s_j, Pipe::Start);
     let mut prev: (usize, usize, Pipe) = pos.clone();
     let mut dq: VecDeque<(usize, usize)> = VecDeque::new();
+    let mut pipe_set: HashSet<(usize, usize)> = HashSet::new();
+
+    pipe_set.insert((s_i, s_j));
 
     loop {
         let (i, j, pipe) = pos;
@@ -133,6 +136,7 @@ fn main() {
                 if (new_pos.0, new_pos.1) != (prev.0, prev.1) {
                     // println!("found next {:?}", new_pos);
                     dq.push_back((new_i, new_j));
+                    pipe_set.insert((new_i, new_j));
                     prev = pos.clone();
                     pos = new_pos.clone();
 
@@ -153,6 +157,7 @@ fn main() {
                 if (new_pos.0, new_pos.1) != (prev.0, prev.1) {
                     // println!("found next {:?}", new_pos);
                     dq.push_back((new_i, new_j));
+                    pipe_set.insert((new_i, new_j));
                     prev = pos.clone();
                     pos = new_pos.clone();
 
@@ -173,6 +178,7 @@ fn main() {
                 if (new_pos.0, new_pos.1) != (prev.0, prev.1) {
                     // println!("found next {:?}", new_pos);
                     dq.push_back((new_i, new_j));
+                    pipe_set.insert((new_i, new_j));
                     prev = pos.clone();
                     pos = new_pos.clone();
 
@@ -193,6 +199,7 @@ fn main() {
                 if (new_pos.0, new_pos.1) != (prev.0, prev.1) {
                     // println!("found next {:?}", new_pos);
                     dq.push_back((new_i, new_j));
+                    pipe_set.insert((new_i, new_j));
                     prev = pos.clone();
                     pos = new_pos.clone();
 
@@ -207,5 +214,17 @@ fn main() {
     }
 
     // println!("{:?}", dq);
-    println!("Result: {}", dq.len() / 2);
+    // println!("Result: {}", dq.len() / 2);
+
+    let mut not_in_loop: u64 = 0;
+
+    for i in 0..rows {
+        for j in 0..columns {
+            if !pipe_set.contains(&(i, j)) {
+                not_in_loop = not_in_loop + 1;
+            }
+        }
+    }
+
+    println!("Not in loop count: {}", not_in_loop);
 }
